@@ -1,106 +1,108 @@
-# Wi-Fi Optimizer for Windows
+# wifi-optimizer
 
-A lightweight, automated diagnostic and tuning utility for Windows that analyzes wireless performance bottlenecks, unlocks hardware-supported Wi-Fi 6 (802.11ax) capabilities, optimizes DNS resolution, eliminates background roaming lag, and diagnoses router channel overlap.
+PowerShell diagnostic and configuration tool for Wi-Fi network adapters on Windows.
 
----
+## Overview
 
-## ⚡ What It Solves
+Windows often uses conservative default driver properties for wireless network adapters. On many systems, Wi-Fi 6 cards remain locked to 802.11ac PHY modes, DNS queries default to high-latency local router relays, and aggressive roaming settings trigger frequent background network scans that introduce latency spikes.
 
-Many modern Windows laptops and PCs experience sub-optimal Wi-Fi performance due to configuration mismatches:
+This tool audits current Wi-Fi adapter properties, benchmarks DNS performance, applies recommended driver configurations, and creates automatic backups for easy rollback.
 
-1. **Restricted Wi-Fi 6 Capabilities**: Wireless cards (such as MediaTek MT7921, Intel AX200/AX201/AX210, etc.) are sometimes defaulted by OEM drivers to older 802.11ac PHY modes, preventing Wi-Fi 6 modulation and falling back to legacy 802.11n on 2.4 GHz.
-2. **High-Latency DNS Relays**: Default ISP router DNS relays often take 200–350 ms per domain lookup. Switching to secure, low-latency providers (such as Cloudflare `1.1.1.1` or Google `8.8.8.8`) cuts query times down to ~15–40 ms.
-3. **Roaming Aggressiveness Stutter**: When set to "Medium-High" or "High" on stationary devices, Windows periodically scans for alternative BSSIDs in the background, creating packet spikes and micro-stutters during calls, streaming, and gaming.
-4. **Channel Overlap & DFS Interference**: Identifying if 2.4 GHz is on an overlapping channel (anything outside 1, 6, and 11) or if 5 GHz is on a DFS radar channel (52–144) causing radar delays.
+## Requirements
 
----
+- Windows 10 or Windows 11
+- PowerShell 5.1 or later
+- Administrator privileges (for applying adapter and DNS changes)
 
-## 🚀 Quick Start
+## Usage
 
-### Option A: One-Click Runner (Recommended)
-1. Right-click `run.bat`.
-2. Select **Run as administrator**.
-3. Choose an option from the interactive menu:
-   - `1`: Run Full Diagnostic Audit
-   - `2`: Optimize Wi-Fi Adapter, DNS & TCP Stack (with automatic backup)
-   - `3`: Benchmark DNS Resolvers
-   - `4`: Restore Previous Configuration
-   - `5`: Exit
+### Quick Start
 
-### Option B: PowerShell CLI
-Open PowerShell as Administrator:
+Run the batch wrapper as Administrator:
+
+```cmd
+run.bat
+```
+
+Or execute the PowerShell script directly:
 
 ```powershell
-# Run a non-destructive audit
+# Audit current connection and display diagnostics
 powershell -ExecutionPolicy Bypass -File .\WiFiOptimizer.ps1 -Audit
 
-# Benchmark DNS servers
+# Benchmark available DNS resolvers
 powershell -ExecutionPolicy Bypass -File .\WiFiOptimizer.ps1 -BenchmarkDNS
 
-# Apply full optimizations with automatic backup
+# Apply all optimizations (creates automatic backup first)
 powershell -ExecutionPolicy Bypass -File .\WiFiOptimizer.ps1 -OptimizeAll
 
 # Restore previous configuration from backup
 powershell -ExecutionPolicy Bypass -File .\WiFiOptimizer.ps1 -Restore
 ```
 
-### Option C: Import as a PowerShell Module
+### Module Import
+
+The tool can also be imported into an existing PowerShell session:
+
 ```powershell
 Import-Module .\src\WiFiOptimizer.psd1
 
-# Run audit
 Get-WiFiDiagnostics
-
-# Benchmark DNS
 Test-DNSResolvers -CurrentDns "192.168.1.254"
-
-# Apply optimizations
 Optimize-WiFiSettings
 ```
 
----
+## What It Configures
 
-## 🛠️ Optimizations Applied
+### 1. Adapter Properties
+- **PHY Mode**: Sets driver mode to 802.11ax (Wi-Fi 6) when supported by the hardware and router.
+- **Preferred Band**: Sets preference to 5 GHz.
+- **Roaming Aggressiveness**: Sets threshold to Medium to prevent background scan stutter while stationary.
+- **Transmit Power Level**: Ensures transmit power is set to 100%.
 
-### 1. Adapter Tuning
-* **PHY Mode**: Unlocks `802.11ax` (Wi-Fi 6) if supported by the hardware and router.
-* **Preferred Band**: Sets priority to 5 GHz (or 6 GHz for Wi-Fi 6E/7 cards).
-* **Roaming Aggressiveness**: Tuned to `Medium` to halt unnecessary background discovery scans while maintaining healthy handoffs if moved.
-* **Transmit Power**: Set to `Highest` (100%).
-
-### 2. Network & DNS Tuning
-* **DNS Providers**: Configures Cloudflare Primary (`1.1.1.1`) and Secondary (`1.0.0.1`) on the active wireless adapter.
-* **DNS Client Cache**: Flushed automatically via `Clear-DnsClientCache`.
-* **TCP Stack**: Tunes Windows Receive Window Auto-Tuning, RSS (Receive-Side Scaling), and RSC (Receive Segment Coalescing).
+### 2. DNS and Network Stack
+- **Resolvers**: Sets Cloudflare DNS (1.1.1.1 and 1.0.0.1) on the active wireless adapter.
+- **Cache**: Clears the Windows DNS resolver cache.
+- **TCP Parameters**: Enables Receive Window Auto-Tuning, Receive-Side Scaling (RSS), and Receive Segment Coalescing (RSC).
 
 ### 3. Router Recommendations
-The audit tool analyzes your current channel and provides concrete router guidance:
-* **2.4 GHz**: Flags overlapping channels (2–5, 7–10) and suggests switching to non-overlapping channels (1, 6, or 11).
-* **5 GHz**: Flags DFS channels (52–144) and suggests switching to clean non-DFS channels (36, 40, 44, or 48) with 80 MHz width.
-* **MU-MIMO**: Recommends enabling Multi-User MIMO on the router.
+The diagnostic audit checks:
+- 2.4 GHz channel selection (recommends switching from overlapping channels to 1, 6, or 11).
+- 5 GHz channel selection (identifies DFS channels 52-144 and recommends non-DFS channels 36, 40, 44, or 48).
 
----
+## Backup and Rollback
 
-## 🔒 Safety & Rollback
+Every optimization run generates a timestamped JSON backup under `backups/`:
 
-Before applying any change, `WiFiOptimizer` automatically takes a snapshot of your network adapter settings, registry values, and DNS configuration into `./backups/wifi_backup_<timestamp>.json`.
+```
+backups/wifi_backup_YYYYMMDD_HHMMSS.json
+```
 
-To revert all changes at any time:
+To restore the original adapter settings and DNS configuration:
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\WiFiOptimizer.ps1 -Restore
 ```
 
----
+Or specify a specific backup file:
 
-## 📂 Project Structure
+```powershell
+powershell -ExecutionPolicy Bypass -File .\WiFiOptimizer.ps1 -Restore -BackupFile .\backups\wifi_backup_example.json
+```
+
+## File Structure
 
 ```
 wifi-optimizer/
-├── WiFiOptimizer.ps1      # Main standalone diagnostic and optimization script
-├── run.bat                # Windows launcher with administrative self-elevation
-├── src/
-│   ├── WiFiOptimizer.psd1 # PowerShell module manifest
-│   └── WiFiOptimizer.psm1 # Modular PowerShell functions
-├── backups/               # Automatically generated configuration snapshots
-└── README.md              # Project documentation
+|-- WiFiOptimizer.ps1      # Main script with CLI and interactive menu
+|-- run.bat                # Administrator launcher
+|-- README.md              # Documentation
+|-- .gitignore             # Git ignore file
+`-- src/
+    |-- WiFiOptimizer.psd1 # Module manifest
+    `-- WiFiOptimizer.psm1 # Module implementation
 ```
+
+## License
+
+MIT

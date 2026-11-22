@@ -29,10 +29,8 @@ $ErrorActionPreference = 'Continue'
 
 function Write-Banner {
     Write-Host ""
-    Write-Host "==========================================================" -ForegroundColor Cyan
-    Write-Host "             WIFI OPTIMIZER FOR WINDOWS                   " -ForegroundColor Yellow
-    Write-Host "        Automated Wi-Fi Diagnostics & Tuning              " -ForegroundColor White
-    Write-Host "==========================================================" -ForegroundColor Cyan
+    Write-Host "WiFi Optimizer for Windows" -ForegroundColor Cyan
+    Write-Host "--------------------------" -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -255,7 +253,7 @@ function Backup-Configuration {
     }
 
     $backupObj | ConvertTo-Json -Depth 5 | Set-Content -Path $backupPath -Encoding UTF8
-    Write-Host "[✓] Backup saved successfully." -ForegroundColor Green
+    Write-Host "[OK] Backup saved successfully." -ForegroundColor Green
     return $backupPath
 }
 
@@ -330,7 +328,7 @@ function Optimize-WiFiSettings {
     netsh int tcp set global rss=enabled | Out-Null
     netsh int tcp set global rsc=enabled | Out-Null
 
-    Write-Host "`n[✓] Optimization applied successfully!" -ForegroundColor Green
+    Write-Host "`n[OK] Optimization applied successfully!" -ForegroundColor Green
     Write-Host "Re-evaluating connection metrics in 5 seconds..." -ForegroundColor DarkGray
     Start-Sleep -Seconds 5
 }
@@ -368,7 +366,7 @@ function Restore-Configuration {
     }
 
     Clear-DnsClientCache
-    Write-Host "[✓] Configuration restored successfully." -ForegroundColor Green
+    Write-Host "[OK] Configuration restored successfully." -ForegroundColor Green
 }
 
 # --- Main Entry Point ---
